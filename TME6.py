@@ -7,7 +7,8 @@ Created on Mon Nov  5 16:18:52 2018
 """
 
 import pandas as pd
-import numpy as np  
+import numpy as np
+from numpy.linalg import inv
 
 
 
@@ -50,22 +51,31 @@ def ucb(data):
     return list_cumul
 
 
-def linucb(data):
+def linucb(data,alpha):
     cumul = 0
     list_cumul = [0]
     A = {}
     b = {}
-    for i in range(0,2):
-        p = pd.DataFrame(0,index = range(0,5),columns = [0])
-        for a in range(0,2):
+    for i in range(0,len(data)):
+        p = pd.DataFrame(0.,index = range(0,10),columns = [0])
+        xi =np.matrix(data.loc[i][1:6]).T
+        for a in range(0,10):
             if a not in A:
-                A[a] = pd.DataFrame(np.identity(5),index = range(1,6),columns = range(1,6))
-                b[a] = pd.DataFrame(0, index = range(1,6), columns = [''])
-            A_inv =pd.DataFrame(np.linalg.pinv(A[a].values), A[a].columns, A[a].index)
+                A[a] = np.identity(5)
+                b[a] = np.zeros((5,1))
+            A_inv =inv(A[a])
             theta = A_inv.dot(b[a])
-            p.loc[a][0] = theta.transpose().dot(data.loc[i][1:6])
-            print(p.loc[a][0])
-            
+            p.loc[a][0] = theta.T.dot(xi) + \
+                          alpha*np.sqrt(xi.T.dot(A_inv.dot(xi)))
+        at = p[0].idxmax()
+        r = data.loc[i][at+6]
+        cumul += r
+        list_cumul.append(cumul)
+        A[at] = A[at] + xi.dot(xi.transpose())
+        b[at] = b[at] + r*xi
+
+    return(list_cumul)
+
             
                 
         
